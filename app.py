@@ -9,17 +9,26 @@ st.set_page_config(page_title="TikTok Auto Post", page_icon="🎵")
 st.title("🎵 TikTok Poster (Germany)")
 st.caption(f"Berlin time: {datetime.now(ZoneInfo('Europe/Berlin')):%Y-%m-%d %H:%M}")
 
-# --- Token ---
+# --- Token စစ်ဆေးခြင်း ---
 try:
-    token = tt.refresh_access_token(
+    token_data = tt.refresh_access_token(
         st.secrets["TIKTOK_CLIENT_KEY"],
         st.secrets["TIKTOK_CLIENT_SECRET"],
         st.secrets["TIKTOK_REFRESH_TOKEN"],
     )
+    access_token = token_data["access_token"]
+    
+    # (အရေးကြီး - ဒီနေရာမှာ refresh_token အသစ်ရလာရင် Secrets ထဲ သိမ်းဖို့ လိုပါတယ်။ 
+    # ဒါပေမယ့် Streamlit Secrets ကို ကုဒ်ကနေ တိုက်ရိုက်ပြင်လို့မရပါဘူး။ 
+    # ဒါကြောင့် session_state မှာ သိမ်းထားပါမယ်။)
+    if "current_refresh_token" not in st.session_state:
+        st.session_state["current_refresh_token"] = token_data["refresh_token"]
+        
 except Exception as e:
     st.error(f"Token error: {e}")
     st.stop()
 
+# --- UI ---
 video = st.file_uploader("Video (mp4)", type=["mp4"])
 caption = st.text_area("Caption", "Guten Tag! #deutschland #fyp", max_chars=2200)
 privacy = st.selectbox("Privacy", ["PUBLIC_TO_EVERYONE", "SELF_ONLY"])
@@ -30,12 +39,16 @@ if st.button("Post now", disabled=video is None):
         path = tmp.name
     with st.spinner("Uploading..."):
         try:
-            pid = tt.post_video(token, path, caption, privacy)
+            pid = tt.post_video(access_token, path, caption, privacy)
+            status = "PROCESSING"
             for _ in range(20):
-                status = tt.get_status(token, pid)
+                status = tt.get_status(access_token, pid)
                 if status in ("PUBLISH_COMPLETE", "FAILED"):
                     break
                 time.sleep(5)
-            (st.success if status == "PUBLISH_COMPLETE" else st.error)(f"Status: {status}")
+            if status == "PUBLISH_COMPLETE":
+                st.success(f"Status: {status}")
+            else:
+                st.error(f"Status: {status}")
         except Exception as e:
             st.error(f"Error: {e}")
