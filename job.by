@@ -1,0 +1,27 @@
+"""GitHub Actions ကနေ run — queue/ folder ထဲက ပထမဆုံး video ကို တင်ပြီး ဖျက်မယ်။
+Caption က video နဲ့နာမည်တူတဲ့ .txt file (ဥပမ်: video1.mp4 + video1.txt)"""
+import os
+import glob
+import tiktok_api as tt
+
+token = tt.refresh_access_token(
+    os.environ["TIKTOK_CLIENT_KEY"],
+    os.environ["TIKTOK_CLIENT_SECRET"],
+    os.environ["TIKTOK_REFRESH_TOKEN"],
+)
+
+videos = sorted(glob.glob("queue/*.mp4"))
+if not videos:
+    print("Queue empty")
+    raise SystemExit(0)
+
+video = videos[0]
+txt = video[:-4] + ".txt"
+caption = open(txt, encoding="utf-8").read().strip() if os.path.exists(txt) else "#deutschland"
+
+pid = tt.post_video(token, video, caption)
+print("Posted, publish_id:", pid)
+
+os.remove(video)
+if os.path.exists(txt):
+    os.remove(txt)
