@@ -7,8 +7,9 @@ st.title("TikTok Token ယူရန်")
 
 KEY = st.secrets["TIKTOK_CLIENT_KEY"]
 SECRET = st.secrets["TIKTOK_CLIENT_SECRET"]
-REDIRECT = st.secrets["REDIRECT_URI"]  # သင့် Streamlit app URL (https://xxx.streamlit.app/)
+REDIRECT = st.secrets["REDIRECT_URI"]  # သင့် Streamlit app URL
 
+# URL ကနေ code ကို ယူတယ်
 code = st.query_params.get("code")
 
 if not code:
@@ -22,21 +23,23 @@ if not code:
     url = "https://www.tiktok.com/v2/auth/authorize/?" + urlencode(params)
     st.link_button("TikTok နဲ့ ခွင့်ပြုမယ်", url)
 else:
-    r = requests.post(
-        "https://open.tiktokapis.com/v2/oauth/token/",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "client_key": KEY,
-            "client_secret": SECRET,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": REDIRECT,
-        },
-    )
-    data = r.json()
-    if "refresh_token" in data:
-        st.success("အောင်မြင်ပါပြီ။ အောက်က refresh token ကို copy ကူးပါ။")
-        st.code(data["refresh_token"])
-        st.warning("ဒီ token ကို ဘယ်သူ့ကိုမှ မပေးပါနဲ့။ Secrets ထဲပဲ ထည့်ပါ။")
-    else:
-        st.error(data)
+    with st.spinner("Token ယူနေသည်..."):
+        r = requests.post(
+            "https://open.tiktokapis.com/v2/oauth/token/",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "client_key": KEY,
+                "client_secret": SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": REDIRECT,
+            },
+        )
+        data = r.json()
+        
+        if "refresh_token" in data:
+            st.success("အောင်မြင်ပါပြီ။ အောက်က Refresh Token ကို Copy ကူးပြီး Streamlit Secrets ထဲမှာ ထည့်ပါ။")
+            st.code(data["refresh_token"], language="text")
+            st.warning("ဒီ token ကို ဘယ်သူ့ကိုမှ မပေးပါနဲ့။ Secrets ထဲပဲ ထည့်ပါ။")
+        else:
+            st.error(f"Error: {data}")
